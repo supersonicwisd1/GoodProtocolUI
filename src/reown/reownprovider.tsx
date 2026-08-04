@@ -1,9 +1,9 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createAppKit } from '@reown/appkit/react'
 import type { AppKitNetwork } from '@reown/appkit-common'
-import { defineChain } from 'viem'
+import { defineChain, http } from 'viem'
 
-import { WagmiProvider } from 'wagmi'
+import { fallback, WagmiProvider } from 'wagmi'
 import { celo, fuse, mainnet } from '@reown/appkit/networks'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
@@ -11,16 +11,18 @@ import { injected, coinbaseWallet } from 'wagmi/connectors'
 import { APPKIT_FEATURED_WALLET_IDS, APPKIT_SOCIAL_PROVIDER_IDS } from 'utils/walletConfig'
 import { SupportedChains } from '@gooddollar/web3sdk-v2'
 import { getEnv } from 'utils/env'
-import { sample } from 'lodash'
+import { set } from 'lodash'
 import { getMiniPayProvider } from 'utils/minipay'
 import { miniPayConnector } from './minipayConnector'
+import { useNetwork } from 'hooks/useWeb3'
+import { WALLET_RECONNECT_FLAG_KEY } from 'constants/reown'
 
 const queryClient = new QueryClient()
 
-const projectId = process.env.REOWN_PROJECT_ID
-if (!projectId) {
-    throw new Error('REOWN_PROJECT_ID environment variable is required')
-}
+const projectId = process.env.REOWN_PROJECT_ID || ''
+// if (!projectId) {
+//     throw new Error('REOWN_PROJECT_ID environment variable is required')
+// }
 
 const metadata = {
     name: 'GoodProtocolUI',
@@ -74,7 +76,7 @@ const getAllowedNetworks = (): SupportedChains[] => {
 }
 
 const createXdcNetwork = (): AppKitNetwork => {
-    const xdcRpc = sample(process.env.REACT_APP_XDC_RPC?.split(',')) ?? 'https://rpc.xdc.network'
+    const xdcRpcs = process.env.REACT_APP_XDC_RPC?.split(',') ?? ['https://rpc.xdc.network']
     return defineChain({
         id: 50,
         name: 'XDC Network',
@@ -85,7 +87,7 @@ const createXdcNetwork = (): AppKitNetwork => {
         },
         rpcUrls: {
             default: {
-                http: [xdcRpc],
+                http: xdcRpcs,
             },
         },
         blockExplorers: {
@@ -146,28 +148,71 @@ const baseConnectors = [
 const connectors =
     typeof window !== 'undefined' && getMiniPayProvider() ? [miniPayConnector(), ...baseConnectors] : baseConnectors
 
-const wagmiAdapter = new WagmiAdapter({
-    networks,
-    projectId,
-    ssr: true,
-    connectors,
-})
+// Runtime reconnect policy:
+// localStorage['GD_WALLET_RECONNECT'] === '0' -> disable reconnectOnMount
+// localStorage['GD_WALLET_RECONNECT'] === '1' -> allow reconnect
+// missing/other value -> allow reconnect (default)
 
-createAppKit({
-    adapters: [wagmiAdapter],
-    networks,
-    projectId,
-    metadata,
-    features: {
-        analytics: true,
-        socials: APPKIT_SOCIAL_PROVIDER_IDS as any,
-    },
-    featuredWalletIds: [...APPKIT_FEATURED_WALLET_IDS],
-})
+const canReconnectOnMount = () => {
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+        return true
+    }
+    return window.localStorage.getItem(WALLET_RECONNECT_FLAG_KEY) === '1'
+}
 
+let wagmiAdapter: WagmiAdapter = null as any
 export function AppKitProvider({ children }: { children: React.ReactNode }) {
+    const [initialized, setInitialized] = React.useState(false)
+    const canReconnect = canReconnectOnMount()
+
+    const { testedRpcs } = useNetwork()
+    useEffect(() => {
+        if (testedRpcs === null) return
+        console.log("initializing Reown's AppKitProvider with tested RPCs:", testedRpcs)
+        const transports = {}
+        networks.map((network) => {
+            const rpcUrls = testedRpcs[network.id]
+            if (rpcUrls) {
+                set(network, 'rpcUrls.default.http', rpcUrls)
+                console.log(`Reown: Updated RPC for ${network.name} to ${rpcUrls}`)
+                transports[network.id] = fallback(
+                    rpcUrls.map((_) => http(_)),
+                    { rank: true }
+                )
+                // network.rpcUrls = updatedNetwork.rpcUrls
+            }
+        })
+        console.log('reown networks:', networks)
+        wagmiAdapter = new WagmiAdapter({
+            networks,
+            projectId,
+            ssr: true,
+            connectors,
+            transports,
+        })
+
+        console.log(`wagmiAdapter.wagmiConfig:`, wagmiAdapter.wagmiConfig)
+        createAppKit({
+            adapters: [wagmiAdapter],
+            networks,
+            projectId,
+            metadata,
+            features: {
+                analytics: true,
+                socials: APPKIT_SOCIAL_PROVIDER_IDS as any,
+            },
+            featuredWalletIds: [...APPKIT_FEATURED_WALLET_IDS],
+        })
+
+        setInitialized(true)
+    }, [testedRpcs === null])
+
+    if (initialized === false) {
+        return null
+    }
+
     return (
-        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+        <WagmiProvider config={wagmiAdapter.wagmiConfig} reconnectOnMount={canReconnect}>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </WagmiProvider>
     )

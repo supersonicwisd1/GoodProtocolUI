@@ -40,7 +40,6 @@ export interface SwapConfirmModalProps extends SwapDetailsFields {
     ]
     open: boolean
     onClose: () => void
-    setOpen: (value: boolean) => void
     swap?: { send: () => Promise<any>; state: TransactionStatus }
     meta: BuyInfo | undefined
     buying: boolean
@@ -56,7 +55,6 @@ const SwapConfirmModal = memo(
         open,
         buying,
         onClose,
-        setOpen,
         onConfirm,
         swap,
         className,
@@ -75,6 +73,9 @@ const SwapConfirmModal = memo(
         const [status, setStatus] = useState<'PREVIEW' | 'CONFIRM' | 'SENT' | 'SUCCESS' | 'REJECTED'>('SENT')
         const [hash, setHash] = useState('')
         const sendData = useSendAnalyticsData()
+
+        const metaMinimunOutput =
+            minimumReceived ?? meta?.minimumOutputAmount.toSignificant(6) ?? "Minimum output couldn't be calculated"
 
         const onSent = (hash: string, from: string) => {
             const inputSig = meta?.inputAmount.toSignificant(6)
@@ -152,10 +153,6 @@ const SwapConfirmModal = memo(
                     setStatus('SUCCESS') // for mento success is via swap.state effect
                 }
 
-                if (meta?.outputAmount.currency.name === 'GoodDollar') {
-                    setOpen(true)
-                }
-
                 // let transactionDetails = buying ? await buy(web3!, meta!, prepareTx, onSent) : await sell(web3!, meta!, prepareTx, onSent)
                 // globalDispatch(
                 //     addTransaction({
@@ -221,15 +218,15 @@ const SwapConfirmModal = memo(
                         </div>
                         <div className="description">
                             {i18n._(
-                                t`Output is estimated. You will receive at least ${minimumReceived} or the transaction will revert`
+                                t`Output is estimated. You will receive at least ${metaMinimunOutput} or the transaction will revert`
                             )}
                         </div>
                         <div className="mt-8 mb-8">
                             <SwapInfo title="Price" value={price} />
-                            {minimumReceived && (
+                            {metaMinimunOutput && (
                                 <SwapInfo
                                     title={i18n._(t`Minimum received`)}
-                                    value={minimumReceived}
+                                    value={metaMinimunOutput}
                                     tip={i18n._(t`The minimum amount of tokens to receive.`)}
                                 />
                             )}
@@ -250,7 +247,7 @@ const SwapConfirmModal = memo(
                                     title={i18n._(t`Liquidity Provider Fee`)}
                                     value={liquidityFee}
                                     tip={i18n._(
-                                        t`Swapping G$ against GoodReserve has no third party fees if you swap from/to cDAI as it's our reserve token. Swapping G$s from/to other assets implies a 0.3% of fee going to 3rd party AMM liquidity providers.`
+                                        t`Swapping G$ against GoodReserve has no third party fees if you swap from/to USDm as it's our reserve token. Swapping G$s from/to other assets implies a 0.3% of fee going to 3rd party AMM liquidity providers.`
                                     )}
                                 />
                             )}

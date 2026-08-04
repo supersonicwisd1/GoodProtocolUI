@@ -10,54 +10,191 @@ import { useAppKitNetwork, useAppKitProvider } from '@reown/appkit/react'
 import type { Provider } from '@reown/appkit/react'
 import { useAccount } from 'wagmi'
 
+import { SUPPORTED_CHAIN_IDS, fetchRpcsFromChainlist, getFallbackRpcsByChain } from 'functions/rpcParsing'
 import { getEnv } from 'utils/env'
 import { isMiniPay, getMiniPayProvider } from 'utils/minipay'
 
 type NetworkSettings = {
     currentNetwork: string
     rpcs: {
-        MAINNET_RPC: string | undefined
-        FUSE_RPC: string | undefined
-        CELO_RPC: string | undefined
-        XDC_RPC: string | undefined
+        1: string
+        122: string
+        42220: string
+        50: string
     }
+    testedRpcs: Record<string, string[]> | null
 }
 
 const gasSettings = {
-    42220: {
-        maxFeePerGas: BigNumber.from(25.001e9).toHexString(),
-        maxPriorityFeePerGas: BigNumber.from(2.5e9).toHexString(),
-    },
     122: { maxFeePerGas: BigNumber.from(11e9).toHexString() },
     // 50: { maxFeePerGas: BigNumber.from(12.5e9).toHexString() }, // eip-1559 is only supported on XDC testnet. Last checked 15 november 2025.
 }
 
+type RpcCacheEntry = {
+    rpcs: Record<string, string[]>
+    timestamp: number
+}
+
+const RPC_CACHE_KEY = 'GD_RPC_CACHE'
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000 // 24 hours
+const RPC_TEST_TIMEOUT_MS = 5000
+
+let rpcInitializationPromise: Promise<Record<string, string[]>> | null = null
+
+async function testRpc(rpcUrl: string): Promise<boolean> {
+    try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), RPC_TEST_TIMEOUT_MS)
+
+        const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_blockNumber',
+                params: [],
+                id: 1,
+            }),
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) return false
+
+        const data = await response.json()
+        return !data.error && !!data.result
+    } catch {
+        return false
+    }
+}
+
+async function fetchAndTestRpcs(): Promise<Record<string, string[]>> {
+    const rpcsByChain: Record<string, string[]> = {}
+    const fallbackRpcsByChain = getFallbackRpcsByChain()
+
+    try {
+        const extraRpcs = await fetchRpcsFromChainlist().catch(() => fallbackRpcsByChain)
+
+        for (const chainId of SUPPORTED_CHAIN_IDS) {
+            const chainRpcs = extraRpcs[chainId] || []
+            const testResults = await Promise.all(
+                chainRpcs.slice(0, 10).map(async (rpcUrl) => ({
+                    rpcUrl,
+                    isValid: await testRpc(rpcUrl),
+                }))
+            )
+            const validRpcs = testResults.filter((r) => r.isValid).map((r) => r.rpcUrl)
+            rpcsByChain[chainId] = validRpcs.length ? validRpcs : fallbackRpcsByChain[chainId]
+        }
+    } catch (error) {
+        console.warn('[fetchAndTestRpcs] Error during RPC fetch/test:', error)
+        rpcInitializationPromise = null
+        return fallbackRpcsByChain
+    }
+
+    return rpcsByChain
+}
+
+async function getRpcCache(): Promise<{ rpcs: Record<string, string[]> | null; expired: boolean }> {
+    try {
+        const cached = await AsyncStorage.getItem(RPC_CACHE_KEY)
+        if (!cached) return { rpcs: null, expired: false }
+
+        const cacheEntry: RpcCacheEntry = JSON.parse(cached)
+        const isExpired = Date.now() - cacheEntry.timestamp > CACHE_DURATION_MS
+
+        return { rpcs: cacheEntry.rpcs, expired: isExpired }
+    } catch {
+        return { rpcs: null, expired: false }
+    }
+}
+
+async function setRpcCache(rpcs: Record<string, string[]>): Promise<void> {
+    try {
+        const cacheEntry: RpcCacheEntry = {
+            rpcs,
+            timestamp: Date.now(),
+        }
+        await AsyncStorage.setItem(RPC_CACHE_KEY, JSON.stringify(cacheEntry))
+    } catch (error) {
+        console.warn('Failed to cache RPCs:', error)
+    }
+}
+
+export const initializeRpcs = async () => {
+    if (rpcInitializationPromise) {
+        return rpcInitializationPromise
+    }
+
+    const dofetch = async () => {
+        const cachedRpcs = await fetchAndTestRpcs()
+        if (Object.values(cachedRpcs).some((arr) => arr.length > 0)) {
+            await setRpcCache(cachedRpcs)
+        }
+        return cachedRpcs
+    }
+
+    rpcInitializationPromise = (async () => {
+        const { rpcs: cachedRpcs, expired } = await getRpcCache()
+
+        if (!cachedRpcs || expired) {
+            const cachedRpcsResult = dofetch()
+            if (!cachedRpcs) {
+                return await cachedRpcsResult
+            } else {
+                void cachedRpcsResult
+            }
+        }
+        return cachedRpcs
+    })()
+
+    return rpcInitializationPromise
+}
+
 export function useNetwork(): NetworkSettings {
-    const celoRpcList = sample(process.env.REACT_APP_CELO_RPC?.split(',')) ?? ''
-    const fuseRpcList = sample(process.env.REACT_APP_FUSE_RPC?.split(',')) ?? 'https://rpc.fuse.io'
-    const xdcRpcList = sample(process.env.REACT_APP_XDC_RPC?.split(',')) ?? 'https://rpc.xinfin.network'
-    const mainnetList = sample(['https://eth.llamarpc.com', 'https://1rpc.io/eth'])
-    const [currentNetwork, rpcs] = useMemo(
-        () => [
-            process.env.REACT_APP_NETWORK || 'fuse',
-            {
-                MAINNET_RPC:
-                    mainnetList ||
-                    process.env.REACT_APP_MAINNET_RPC ||
-                    (ethers.getDefaultProvider('mainnet') as any).providerConfigs[0].provider.connection.url,
-                FUSE_RPC: fuseRpcList || 'https://rpc.fuse.io',
-                CELO_RPC: celoRpcList || 'https://forno.celo.org',
-                XDC_RPC: xdcRpcList,
-            },
-        ],
+    const [testifiedRpcs, setTestifiedRpcs] = React.useState<Record<string, string[]> | null>(null)
+    const excludedRpcs = useMemo(
+        () =>
+            (process.env.REACT_APP_EXCLUDED_RPCS ?? '')
+                .split(',')
+                .map((value) => value.trim().toLowerCase())
+                .filter(Boolean),
         []
     )
 
+    const filterBlockedRpcs = (rpcs: Record<string, string[]>) =>
+        Object.fromEntries(
+            Object.entries(rpcs).map(([chainId, urls]) => [
+                chainId,
+                urls.filter((url) => !excludedRpcs.some((blocked) => url.toLowerCase().includes(blocked))),
+            ])
+        )
+
+    const fallbackRpcsByChain = useMemo(() => getFallbackRpcsByChain(), [])
+
+    const [currentNetwork, rpcs] = useMemo(() => {
+        const selectedRpcs = {
+            1: sample(testifiedRpcs?.['1'] || []) || sample(fallbackRpcsByChain['1']) || '',
+            122: sample(testifiedRpcs?.['122'] || []) || sample(fallbackRpcsByChain['122']) || '',
+            42220: sample(testifiedRpcs?.['42220'] || []) || sample(fallbackRpcsByChain['42220']) || '',
+            50: sample(testifiedRpcs?.['50'] || []) || sample(fallbackRpcsByChain['50']) || '',
+        }
+
+        return [process.env.REACT_APP_NETWORK || 'fuse', selectedRpcs]
+    }, [testifiedRpcs, fallbackRpcsByChain])
+
     useEffect(() => {
-        AsyncStorage.safeSet('GD_RPCS', rpcs)
+        void initializeRpcs().then((rpcs) => {
+            setTestifiedRpcs(filterBlockedRpcs(rpcs))
+        })
     }, [])
 
-    return { currentNetwork, rpcs }
+    useEffect(() => {
+        AsyncStorage.safeSet('GD_RPCS', rpcs)
+    }, [rpcs])
+
+    return { currentNetwork, rpcs, testedRpcs: testifiedRpcs }
 }
 
 export function Web3ContextProvider({ children }: { children: ReactNode | ReactNodeArray }): JSX.Element {
@@ -95,13 +232,8 @@ export function Web3ContextProvider({ children }: { children: ReactNode | ReactN
             if (method === 'eth_sendTransaction' && !isMiniPayWallet && chainId && chainId in gasSettings) {
                 const gasSettingsForChain = gasSettings[Number(chainId)]
                 if (gasSettingsForChain) {
-                    if (!params[0].maxFeePerGas && Number(chainId) !== 50) {
-                        // params[0].gasPrice = gasPriceSettings[chainId].maxFeePerGas
-                        delete params[0].gasPrice
-                        params[0] = { ...params[0], ...gasSettingsForChain }
-                    } else {
-                        params[0] = { ...params[0], ...gasSettingsForChain }
-                    }
+                    delete params[0].gasPrice
+                    params[0] = { ...params[0], ...gasSettingsForChain }
                 }
             }
             return webprovider.jsonRpcFetchFunc(method, params)
@@ -112,12 +244,16 @@ export function Web3ContextProvider({ children }: { children: ReactNode | ReactN
     const contractsEnv = network
     const contractsEnvV2 = network === 'development' ? 'fuse' : network
 
+    if (!rpcs) return <></>
     return (
         <GdSdkContext.Provider
             value={{
                 web3: web3,
                 contractsEnv,
-                rpcs: rpcs,
+                rpcs: {
+                    MAINNET_RPC: rpcs['1'],
+                    FUSE_RPC: rpcs['122'],
+                },
             }}
         >
             <Web3Provider
@@ -127,12 +263,7 @@ export function Web3ContextProvider({ children }: { children: ReactNode | ReactN
                     pollingInterval: 15000,
                     networks: [Mainnet, Fuse, Celo, Xdc],
                     readOnlyChainId: undefined,
-                    readOnlyUrls: {
-                        1: sample(process.env.REACT_APP_MAINNET_RPC?.split(',')) ?? 'https://eth.llamarpc.com',
-                        122: sample(process.env.REACT_APP_FUSE_RPC?.split(',')) || 'https://rpc.fuse.io',
-                        42220: sample(process.env.REACT_APP_CELO_RPC?.split(',')) || 'https://forno.celo.org',
-                        50: sample(process.env.REACT_APP_XDC_RPC?.split(',')) || 'https://rpc.xinfin.network',
-                    },
+                    readOnlyUrls: rpcs,
                 }}
             >
                 {children}

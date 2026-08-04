@@ -3,7 +3,7 @@ import { useLingui } from '@lingui/react'
 import React, { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
 import styled from 'styled-components'
-import { useAppKit } from '@reown/appkit/react'
+import { useAppKit, useDisconnect } from '@reown/appkit/react'
 import { useRedirectNotice } from '@gooddollar/good-design'
 import { isMiniPay } from 'utils/minipay'
 
@@ -22,7 +22,7 @@ import Transaction from './Transaction'
 import useSendAnalyticsData from '../../hooks/useSendAnalyticsData'
 
 import { getEnv } from 'utils/env'
-import { useDisconnect } from 'wagmi'
+import { WALLET_RECONNECT_FLAG_KEY } from 'constants/reown'
 
 const UpperSection = styled.div`
     position: relative;
@@ -219,7 +219,7 @@ export default function AccountDetails({
     const { open } = useAppKit()
     const { disconnect } = useDisconnect()
 
-    // Connection management handled by AppKit modal and wagmi disconnect
+    // Connection management handled by AppKit modal and AppKit disconnect
     const sendData = useSendAnalyticsData()
     const { goToExternal } = useRedirectNotice()
 
@@ -237,10 +237,13 @@ export default function AccountDetails({
         await open({ view: 'Connect' })
     }, [toggleWalletModal, open])
 
-    const disconnectWallet = useCallback(() => {
+    const disconnectWallet = useCallback(async () => {
         toggleWalletModal()
         sendData({ event: 'account', action: 'address_disconnect_success', network: network })
-        disconnect()
+        await disconnect()
+        if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+            window.localStorage.setItem(WALLET_RECONNECT_FLAG_KEY, '0')
+        }
     }, [toggleWalletModal, disconnect, network, sendData])
 
     const clearAllTransactionsCallback = useCallback(() => {

@@ -122,6 +122,71 @@ const faqBridgeCopy: FaqItemCopy[] = [
     },
 ]
 
+const faqMpbBridgeCopy: FaqItemCopy[] = [
+    {
+        id: 'whatismainbridge',
+        question: `What is the Main Bridge?`,
+        answer: `A bridge is a tool built to transfer assets from one network to another. It’s also a verb, used to describe that action: “I bridged my G$ from Fuse to Celo.”\n\nGoodDollar operates across Fuse, Celo, Ethereum and XDC networks, and G$ tokens can be bridged across those networks.\n\nThanks to the Main Bridge you can easily move G$ between supported GoodDollar networks directly from GoodDapp.\n\nDepending on the selected source and destination networks, different bridge providers and routes may be available.`,
+    },
+    {
+        id: 'supportednetworksroutes',
+        question: `Which networks and routes are supported?`,
+        answer: `GoodDollar currently supports bridging across:\n\n- Fuse\n- Celo\n- Ethereum\n- XDC\n\nAvailable bridge providers and routes depend on the selected source and destination networks.\n\nCurrently:\n\n- Axelar supports Ethereum ↔ Celo\n- LayerZero supports all chains and routes.\n\nThe available routes will update automatically depending on the selected route.`,
+    },
+    {
+        id: 'whocanusemainbridge',
+        question: `Who can use it?`,
+        answer: `Anyone can use the Main Bridge, but there are a few requirements to ensure a smooth transfer of your G$ tokens:\n\n1. **Wallet Compatibility**\n\nVerify that your wallet is compatible with both the source and destination networks. Sending G$ to incompatible wallets may result in loss of funds.\n\n2. **Gas Fees**\n\nUsing the Main Bridge requires native tokens to cover gas fees on the selected network. Make sure you have sufficient balances before bridging.\n\nExamples:\n\n- CELO on Celo\n- ETH on Ethereum\n- FUSE on Fuse\n- XDC on XDC\n\nSee below “What are the fees for using the Main Bridge?” for more details.`,
+    },
+    {
+        id: 'howdoesmainbridgework',
+        question: `How does it work?`,
+        answer: `The Main Bridge uses bridge smart contracts and cross-chain messaging infrastructure to transfer G$ between supported networks.\n\nDepending on the selected route, different bridge providers may be used, including Axelar and LayerZero.\n\nWhen you bridge G$:\n\n- your G$ is sent through bridge contracts on the source network\n- the selected bridge provider verifies and relays the transaction across networks\n- G$ is then released or minted on the destination network\n\nDifferent routes may use different bridge mechanisms depending on network support and provider infrastructure.`,
+        links: [
+            {
+                href: 'https://docs.gooddollar.org/user-guides/bridge-gooddollars',
+                text: 'More technical information:',
+                linkText: 'GoodDollar Documentation',
+            },
+        ],
+    },
+    {
+        id: 'whichprovider',
+        question: `Which bridge provider should I use?`,
+        answer: `In most cases, simply:\n\n- select the source network\n- select the destination network\n- enter the amount you want to transfer\n\nCurrently:\n\n- Axelar supports Ethereum ↔ Celo\n- LayerZero supports all chains that G$ is active on. (Celo/Fuse/XDC/Ethereum)\n\nFor Ethereum ↔ Celo transfers, Axelar may provide lower fees depending on network conditions.`,
+    },
+    {
+        id: 'whatfeesmainbridge',
+        question: `What are the fees for using the Main Bridge?`,
+        answer: `The fees for using the Main Bridge depend on the selected route and bridge provider.\n\nBridge transactions may include:\n\n- Protocol fees\n- native network gas fees\n- bridge fees charged in native tokens\n\nAll bridge transactions require native gas tokens on the source network:\n\n- CELO on Celo\n- ETH on Ethereum\n- FUSE on Fuse\n- XDC on XDC\n\nFees vary depending on:\n\n- source and destination networks\n- selected bridge provider\n- network congestion\n- current gas costs\n\nEstimated fees are shown below the bridge button.\n\nPlease note that Ethereum-related transactions may incur higher gas fees depending on network activity.`,
+    },
+    {
+        id: 'whatlimitsmainbridge',
+        question: `What are the limits?`,
+        answer: `You may bridge up to 300M G$ per transaction depending on route and provider availability.`,
+    },
+    {
+        id: 'howlongbridging',
+        question: `How long does bridging take?`,
+        answer: `Transfer times vary depending on:\n\n- source network\n- destination network\n- selected provider\n- network congestion\n\nEthereum-related transfers may take longer due to confirmation times.\n\nThe Main Bridge interface provides transaction status updates during the bridging process.`,
+    },
+    {
+        id: 'trackmainbridge',
+        question: `Can I track the status of my bridge transaction?`,
+        answer: `The Main Bridge interface provides information about your bridge transaction in “Recent Transactions.”\n\nSome providers may also provide additional transaction tracking through their own explorers.`,
+    },
+    {
+        id: 'whybridgefailed',
+        question: `Why did my bridge transaction fail?`,
+        answer: `Common reasons include:\n\n- insufficient native gas tokens\n- unsupported route\n- bridge limits exceeded\n- wallet/network mismatch\n- temporary provider or relay delays\n\nIf a transaction appears delayed, funds may still be processing through the bridge infrastructure.`,
+    },
+    {
+        id: 'arefundssafe',
+        question: `Are my funds safe during bridging?`,
+        answer: `Bridge transactions go through multiple verification and relay steps before completion.\n\nBefore bridging:\n\n- verify the selected source and destination networks\n- ensure your wallet supports the destination network\n- make sure you have enough native gas tokens\n- review the estimated fees before confirming the transaction\n\nAlways double-check the selected route and destination network before submitting a transaction.`,
+    },
+]
+
 const faqBuyCopy: FaqItemCopy[] = [
     {
         id: 'whatthis',
@@ -290,29 +355,56 @@ const faqClaimCopy: FaqItemCopy[] = [
     },
 ]
 
-const faqReserveCopy: FaqItemCopy[] = [
+const faqSavingsCopy: FaqItemCopy[] = [
+    {
+        id: 'whatissavings',
+        question: `What is the Savings Widget?`,
+        answer: `The Savings Widget allows you to grow your G$ holdings through yield-generating opportunities. Connect your wallet and earn rewards on your GoodDollar holdings securely and transparently.`,
+        links: [],
+    },
+    {
+        id: 'howdoesitsavings',
+        question: `How does it work?`,
+        answer: `Once connected, your G$ can be staked or used in various yield-generating strategies. The widget displays your balance, potential earnings, and available actions. All transactions are transparent and happen on-chain.`,
+        links: [],
+    },
+    {
+        id: 'issavingssafe',
+        question: `Is it safe?`,
+        answer: `Your funds remain in your control. The smart contracts powering the savings strategies have been audited and follow security best practices. Always verify contract addresses before interacting.`,
+        links: [],
+    },
+    {
+        id: 'whataresavingsrewards',
+        question: `What are the rewards?`,
+        answer: `Rewards vary based on the yield-generating strategy and current market conditions. Check the widget for current rates and estimated earnings. Rewards are typically paid in G$ or other supported tokens.`,
+        links: [],
+    },
+]
+
+export const faqReserveCeloCopy: FaqItemCopy[] = [
     {
         id: 'whatsswapreserve',
         question: 'What is a Swap?',
-        answer: `A swap is when you convert one digital asset for another, allowing people to diversify their cryptocurrency holdings.\n\nThe swap on this page happens through the GoodDollar Reserve on Celo. The Reserve itself acts as an **Automated Market Maker (AMM)**, meaning it holds and manages liquidity for G$, allowing you to bull or sell G$ directly and permissionlessly.\n\nWhen you buy G$ from the Reserve, you’re not just swapping tokens — you’re helping mint new G$ and strengthening the global UBI economy.`,
+        answer: `A swap is when you convert one digital asset for another, allowing people to diversify their cryptocurrency holdings.\n\nThe swap on this page happens through the GoodDollar Reserve on Celo. The Reserve itself acts as an **Automated Market Maker (AMM)**, meaning it holds and manages liquidity for G$, allowing you to **buy or sell G$ directly and permissionlessly**.\n\nWhen you buy G$ from the Reserve, you’re not just swapping tokens. You’re helping mint new G$ and strengthening the global UBI economy.`,
     },
     {
         id: 'whereliqfromreserve',
         question: 'Where is the GoodDollar Reserve widget pulling the liquidity from?',
-        answer: `The widget pulls liquidity directly from the **GoodDollar Reserve on Celo.**\n\nThe **GoodDollar Reserve** is the **economic engine** at the heart of the GoodDollar Protocol.\n\n**It’s a smart contract on the Celo blockchain** that holds reserve assets and uses them to **mint and redeem G$,** the protocol’s native social currency. The Reserve operates as an **Automated Market Maker (AMM)** — meaning it sets the price of G$ algorithmically based on supply and demand.\n\nWhen someone buys G$ through the Reserve, new G$ tokens are minted. A portion goes to the buyer, and another portion is distributed daily to UBI claimers around the world.`,
+        answer: `The widget pulls liquidity directly from the **GoodDollar Reserve on Celo**.\n\nThe GoodDollar Reserve is the economic engine at the heart of the GoodDollar Protocol. It’s a smart contract on the Celo blockchain that holds reserve assets and uses them to mint and redeem G$, the protocol’s native social currency.\n\nThe Reserve operates as an **Automated Market Maker (AMM)**, meaning it sets the price of G$ algorithmically based on supply and demand.\n\nWhen someone buys G$ through the Reserve, new G$ tokens are minted. A portion goes to the buyer, and another portion is distributed daily to UBI claimers around the world.`,
     },
     {
         id: 'whichnetworksreserve',
         question: 'Which networks can I swap my G$ on from the Reserve?',
-        answer: `The **GoodDollar Reserve is deployed only on the Celo Network.**\n\nSwaps powered by the Reserve are available only **on Celo.**`,
+        answer: `There are currently two GoodDollar Reserves deployed: one on the **Celo Network** and one on the **XDC Network**.\n\nThis page interacts with the **GoodDollar Reserve on Celo**, and swaps performed here occur on the Celo Network.`,
     },
     {
         id: 'trackswapreserve',
         question: 'Can I track the status of my swap?',
-        answer: `You can track the status of your swap transaction with your transaction hash and through the blockchain explorer.\n\nTo check transactions on Celo, check the Celo Explorer.`,
+        answer: `You can track the status of your swap transaction using your transaction hash and a blockchain explorer.\n\nTo check transactions on Celo, use the Celo Explorer.`,
         links: [
             {
-                href: 'https://celo.blockscout.com/',
+                href: 'https://celoscan.io/',
                 text: 'To check transactions on Celo, check the',
                 linkText: 'Celo Explorer',
             },
@@ -321,7 +413,7 @@ const faqReserveCopy: FaqItemCopy[] = [
     {
         id: 'howbridgefromreserve',
         question: 'How can I bridge my G$ from one network to another?',
-        answer: `To bridge is the action of transferring your assets from one network to another. To bridge your G$ between Celo and Fuse, you can use the Microbridge.`,
+        answer: `Bridging is the action of transferring your assets from one network to another.\n\nTo bridge your G$ between Celo and Fuse, you can use MicroBridge.`,
         links: [
             {
                 href: 'https://gooddapp.org/#/microbridge',
@@ -342,11 +434,65 @@ const faqReserveCopy: FaqItemCopy[] = [
     },
 ]
 
+export const faqReserveXdcCopy: FaqItemCopy[] = [
+    {
+        id: 'whatsswapreserve',
+        question: 'What is a Swap?',
+        answer: `A swap is when you convert one digital asset for another, allowing people to diversify their cryptocurrency holdings.\n\nThe swap on this page happens through the GoodDollar Reserve on XDC. The Reserve itself acts as an **Automated Market Maker (AMM)**, meaning it holds and manages liquidity for G$, allowing you to **buy or sell G$ directly and permissionlessly**.\n\nWhen you buy G$ from the Reserve, you’re not just swapping tokens. You’re helping mint new G$ and strengthening the global UBI economy.`,
+    },
+    {
+        id: 'whereliqfromreserve',
+        question: 'Where is the GoodDollar Reserve widget pulling the liquidity from?',
+        answer: `The widget pulls liquidity directly from the **GoodDollar Reserve on XDC**.\n\nThe GoodDollar Reserve is the economic engine at the heart of the GoodDollar Protocol. It’s a smart contract on the XDC blockchain that holds reserve assets and uses them to mint and redeem G$, the protocol’s native social currency.\n\nThe Reserve operates as an **Automated Market Maker (AMM)**, meaning it sets the price of G$ algorithmically based on supply and demand.\n\nWhen someone buys G$ through the Reserve, new G$ tokens are minted. A portion goes to the buyer, and another portion is distributed daily to UBI claimers around the world.`,
+    },
+    {
+        id: 'whichnetworksreserve',
+        question: 'Which networks can I swap my G$ on from the Reserve?',
+        answer: `There are currently two GoodDollar Reserves deployed: one on the **Celo Network** and one on the **XDC Network**.\n\nThis page interacts with the **GoodDollar Reserve on XDC**, and swaps performed here occur on the XDC Network.`,
+    },
+    {
+        id: 'trackswapreserve',
+        question: 'Can I track the status of my swap?',
+        answer: `You can track the status of your swap transaction using your transaction hash and a blockchain explorer.\n\nTo check transactions on XDC, use the XDC Explorer.`,
+        links: [
+            {
+                href: 'https://xdcscan.com/',
+                text: 'To check transactions on XDC, check the',
+                linkText: 'XDC Explorer',
+            },
+        ],
+    },
+    {
+        id: 'howbridgefromreserve',
+        question: 'How can I bridge my G$ from one network to another?',
+        answer: `Bridging is the action of transferring your assets from one network to another.\n\nTo bridge your G$ between **Celo, Fuse, Ethereum Mainnet and XDC**, you can follow this guide for interacting with the bridge:`,
+        links: [
+            {
+                href: 'https://docs.gooddollar.org/user-guides/bridge-gooddollars',
+                linkText: 'GoodBridge',
+            },
+        ],
+    },
+    {
+        id: 'provideliquidityreserve',
+        question: 'How can I provide G$ liquidity?',
+        answer: `If you are interested in learning more about GoodDollar liquidity, including how to provide liquidity,\n\n`,
+        links: [
+            {
+                href: 'https://docs.gooddollar.org/liquidity',
+                linkText: 'Please click here',
+            },
+        ],
+    },
+]
+
 export const faqs = {
     swap: faqSwapCopy,
     buy: faqBuyCopy,
     bridge: faqBridgeCopy,
+    mpbbridge: faqMpbBridgeCopy,
     goodid: faqGoodIDCopy,
     claim: faqClaimCopy,
-    reserve: faqReserveCopy,
+    reserve: faqReserveCeloCopy,
+    savings: faqSavingsCopy,
 }
